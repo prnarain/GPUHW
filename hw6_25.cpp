@@ -63,8 +63,7 @@ clock_t start,stop; int counttemp = 1250;
 start=clock();
 for (size_t i=0; i<counttemp; i++){
 
-    //Mat image = imread("barbara.jpg",CV_LOAD_IMAGE_COLOR) ;
-    Mat image = imread(fn[i],CV_LOAD_IMAGE_COLOR) ;
+    Mat img = imread(fn[i],CV_LOAD_IMAGE_COLOR) ;
 
     unsigned char* h_inImg = img.data;
 
@@ -76,7 +75,6 @@ for (size_t i=0; i<counttemp; i++){
     // useful params
     size_t imgSize = sizeof(unsigned char)*imgWidth*imgHeight*imgChans;
     size_t filterSize = sizeof(float)*FILTER_WIDTH*FILTER_WIDTH;
-    //GpuTimer timer0, timer1, timer2, timer3;
 
     // allocate host memory
     float* h_filter = (float*)malloc(filterSize);
