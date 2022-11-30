@@ -131,7 +131,7 @@ for (int r=100; r<tempcount; r = r+100){
         float* d_filter;
         unsigned char* d_inImg;
         unsigned char* d_outImg;
-        //timer0.Start();
+
         cudaMalloc((void**)&d_filter, filterSize);
         cudaMalloc((void**)&d_inImg, imgSize);
         cudaMalloc((void**)&d_outImg, imgSize);
