@@ -66,8 +66,7 @@ clock_t start,stop; int counttemp = 1250;
 start=clock();
 for (size_t i=0; i<counttemp; i++){
 
-    //Mat image = imread("barbara.jpg",CV_LOAD_IMAGE_COLOR) ;
-    Mat image = imread(fn[i],CV_LOAD_IMAGE_COLOR) ;
+    Mat img = imread(fn[i],CV_LOAD_IMAGE_COLOR) ;
 
     unsigned char* h_inImg = img.data;
 
