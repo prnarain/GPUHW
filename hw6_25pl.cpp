@@ -6,6 +6,7 @@
 #include <time.h>
 #include<omp.h>
 
+
 using namespace std;
 using namespace cv;
 
@@ -26,16 +27,18 @@ void Conv2D_CPU(unsigned char* outImg, unsigned char* inImg, float* filter, int 
             // compute coordinates of top-left corner
             cornerRow = row - FILTER_RADIUS;
             cornerCol = col - FILTER_RADIUS;
-
+            
+            #pragma omp parallel for
             // loop through the channels
             for (int c = 0; c < numChans; c++) {
                 // reset accumulator
                 cumSum = 0;
-
+                
+                #pragma omp parallel for
                 // accumulate values inside filter
                 for (int i = 0; i < FILTER_WIDTH; i++) {
                     #pragma omp parallel
-                    {        
+                    {
                         int j = omp_get_thread_num();
                         // compute pixel coordinates inside filter
                         filterRow = cornerRow + i;
@@ -60,59 +63,65 @@ Mat img;
 vector<String> fn;
 glob("jpg/*.jpg", fn, false);
 size_t count = fn.size();
-clock_t start,stop; int counttemp = 1250;
+cout << "\nTotal images : " << count << endl ;
+clock_t start,stop; 
+
+int tempcount = 1200 ; 
+
+for (int r=100; r<tempcount; r = r+100){
 /////////////////////////////////////////////////////////
+    start=clock();
+    for (size_t i=0; i<r; i++){
+        // for testing taken the image barbara
+        //Mat img = imread("barbara.jpg",CV_LOAD_IMAGE_COLOR) ;
+        //Mat image = imread("barbara.jpg",CV_LOAD_IMAGE_COLOR) ;
+        Mat image = imread(fn[i],CV_LOAD_IMAGE_COLOR) ;
+        unsigned char* h_inImg = img.data;
 
-start=clock();
-for (size_t i=0; i<counttemp; i++){
+        // grab image dimensions
+        int imgChans = img.channels();
+        int imgWidth = img.cols;
+        int imgHeight = img.rows;
 
-    Mat img = imread(fn[i],CV_LOAD_IMAGE_COLOR) ;
+        // useful params
+        size_t imgSize = sizeof(unsigned char)*imgWidth*imgHeight*imgChans;
+        size_t filterSize = sizeof(float)*FILTER_WIDTH*FILTER_WIDTH;
 
-    unsigned char* h_inImg = img.data;
+        // allocate host memory
+        float* h_filter = (float*)malloc(filterSize);
+        unsigned char* h_outImg = (unsigned char*)malloc(imgSize);
+        unsigned char* h_outImg_CPU = (unsigned char*)malloc(imgSize);
 
-    // grab image dimensions
-    int imgChans = img.channels();
-    int imgWidth = img.cols;
-    int imgHeight = img.rows;
+        // hardcoded filter values
+        float filter[FILTER_WIDTH*FILTER_WIDTH] = {
+            1/273.0, 4/273.0, 7/273.0, 4/273.0, 1/273.0,
+            4/273.0, 16/273.0, 26/273.0, 16/273.0, 4/273.0,
+            7/273.0, 26/273.0, 41/273.0, 26/273.0, 7/273.0,
+            4/273.0, 16/273.0, 26/273.0, 16/273.0, 4/273.0,
+            1/273.0, 4/273.0, 7/273.0, 4/273.0, 1/273.0
+        };
+        h_filter = filter;
 
-    // useful params
-    size_t imgSize = sizeof(unsigned char)*imgWidth*imgHeight*imgChans;
-    size_t filterSize = sizeof(float)*FILTER_WIDTH*FILTER_WIDTH;
+        Conv2D_CPU(h_outImg_CPU, h_inImg, h_filter, imgWidth, imgHeight, imgChans);
+        
+        // display images
+        Mat img2(imgHeight, imgWidth, CV_8UC3, h_outImg_CPU);
+        
+        //cout<< "\n" << fn[i];
+        //imwrite("example.jpg", img2);
+    }
+    stop=clock();
+    printf("\ntotal count  %d ",r);
 
-    // allocate host memory
-    float* h_filter = (float*)malloc(filterSize);
-    unsigned char* h_outImg = (unsigned char*)malloc(imgSize);
-    unsigned char* h_outImg_CPU = (unsigned char*)malloc(imgSize);
+    printf("\n\nTime taken in -- CPU  Parallel --  for images convolution %lf\n", (double)(stop-start)/CLOCKS_PER_SEC);
 
-    // hardcoded filter values
-    float filter[FILTER_WIDTH*FILTER_WIDTH] = {
-        1/273.0, 4/273.0, 7/273.0, 4/273.0, 1/273.0,
-        4/273.0, 16/273.0, 26/273.0, 16/273.0, 4/273.0,
-        7/273.0, 26/273.0, 41/273.0, 26/273.0, 7/273.0,
-        4/273.0, 16/273.0, 26/273.0, 16/273.0, 4/273.0,
-        1/273.0, 4/273.0, 7/273.0, 4/273.0, 1/273.0
-    };
-    h_filter = filter;
-
-    Conv2D_CPU(h_outImg_CPU, h_inImg, h_filter, imgWidth, imgHeight, imgChans);
-    
-    // display images
-    Mat img2(imgHeight, imgWidth, CV_8UC3, h_outImg_CPU);
-    
+}
+    return 0;
 }
 
-stop=clock();
-
-cout << "\nTotal images : " << counttemp << endl ;
-printf("\n\nTime taken in -- CPU parallel --  for images convolution %lf\n", (double)(stop-start)/CLOCKS_PER_SEC);
-
-return 0;
-}
-
-/*
-
-g++ hw6_25pl.cpp -o hw6_25plcpp.out `pkg-config --cflags --libs opencv` -fopenmp 
+/*  
+g++ hw6_25pl.cpp -o hw6_25pl.out `pkg-config --cflags --libs opencv` -fopenmp
 export OMP_NUM_THREADS=5
-./hw6_25plcpp.out
+./hw6_25pl.out
 
 */
