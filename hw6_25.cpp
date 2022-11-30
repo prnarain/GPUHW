@@ -38,7 +38,7 @@ void Conv2D_CPU(unsigned char* outImg, unsigned char* inImg, float* filter, int 
                         filterRow = cornerRow + i;
                         filterCol = cornerCol + j;
 
-                        // make sure we are within image boundaries
+                        // make sure we are within image boundaries a[i][i] = a[i*row+j] 
                         if ((filterRow >= 0) && (filterRow <= numRows) && (filterCol >= 0) && (filterCol <= numCols)) {
                             cumSum += inImg[(filterRow*numCols + filterCol)*numChans + c] * filter[i*FILTER_WIDTH + j];
                         }
@@ -53,63 +53,73 @@ void Conv2D_CPU(unsigned char* outImg, unsigned char* inImg, float* filter, int 
 
 int main() {
  
-Mat img;
+//Mat img;
 vector<String> fn;
 glob("jpg/*.jpg", fn, false);
 size_t count = fn.size();
-clock_t start,stop; int counttemp = 1250;
+cout << "\nTotal images : " << count << endl ;
+clock_t start,stop;
+int tempcount = 1200 ; 
+
+for (int r=100; r<tempcount; r = r+100){
+
 /////////////////////////////////////////////////////////
 
-start=clock();
-for (size_t i=0; i<counttemp; i++){
+    start=clock();
+    for (size_t i=0; i<r; i++){
 
-    Mat img = imread(fn[i],CV_LOAD_IMAGE_COLOR) ;
+        // for testing taken the image barbara
+        //Mat img = imread("barbara.jpg",CV_LOAD_IMAGE_COLOR) ;
 
-    unsigned char* h_inImg = img.data;
+        Mat img = imread(fn[i],CV_LOAD_IMAGE_COLOR) ;
 
-    // grab image dimensions
-    int imgChans = img.channels();
-    int imgWidth = img.cols;
-    int imgHeight = img.rows;
+        unsigned char* h_inImg = img.data;
 
-    // useful params
-    size_t imgSize = sizeof(unsigned char)*imgWidth*imgHeight*imgChans;
-    size_t filterSize = sizeof(float)*FILTER_WIDTH*FILTER_WIDTH;
+        // grab image dimensions
+        int imgChans = img.channels();
+        int imgWidth = img.cols;
+        int imgHeight = img.rows;
 
-    // allocate host memory
-    float* h_filter = (float*)malloc(filterSize);
-    unsigned char* h_outImg = (unsigned char*)malloc(imgSize);
-    unsigned char* h_outImg_CPU = (unsigned char*)malloc(imgSize);
+        // useful params makeing into 1D 
+        size_t imgSize = sizeof(unsigned char)*imgWidth*imgHeight*imgChans;
+        size_t filterSize = sizeof(float)*FILTER_WIDTH*FILTER_WIDTH;
 
-    // hardcoded filter values
-    float filter[FILTER_WIDTH*FILTER_WIDTH] = {
-        1/273.0, 4/273.0, 7/273.0, 4/273.0, 1/273.0,
-        4/273.0, 16/273.0, 26/273.0, 16/273.0, 4/273.0,
-        7/273.0, 26/273.0, 41/273.0, 26/273.0, 7/273.0,
-        4/273.0, 16/273.0, 26/273.0, 16/273.0, 4/273.0,
-        1/273.0, 4/273.0, 7/273.0, 4/273.0, 1/273.0
-    };
-    h_filter = filter;
+        // allocate host memory
+        float* h_filter = (float*)malloc(filterSize);
+        unsigned char* h_outImg = (unsigned char*)malloc(imgSize);
+        unsigned char* h_outImg_CPU = (unsigned char*)malloc(imgSize);
 
-    Conv2D_CPU(h_outImg_CPU, h_inImg, h_filter, imgWidth, imgHeight, imgChans);
-    
-    // display images
-    Mat img2(imgHeight, imgWidth, CV_8UC3, h_outImg_CPU);
-    
+        // hardcoded filter values
+        float filter[FILTER_WIDTH*FILTER_WIDTH] = {
+            1/273.0, 4/273.0, 7/273.0, 4/273.0, 1/273.0,
+            4/273.0, 16/273.0, 26/273.0, 16/273.0, 4/273.0,
+            7/273.0, 26/273.0, 41/273.0, 26/273.0, 7/273.0,
+            4/273.0, 16/273.0, 26/273.0, 16/273.0, 4/273.0,
+            1/273.0, 4/273.0, 7/273.0, 4/273.0, 1/273.0
+        };
+        h_filter = filter;
+
+        Conv2D_CPU(h_outImg_CPU, h_inImg, h_filter, imgWidth, imgHeight, imgChans);
+        
+        // display images
+        Mat img2(imgHeight, imgWidth, CV_8UC3, h_outImg_CPU);
+        
+        //cout<< "\n" << fn[i];
+        //imwrite("cpuimg.jpg", img2);
+
+    }
+
+    stop=clock();
+    printf("\ntotal count  %d ",r);
+
+    printf("\n\nTime taken in -- CPU Sequential --  for images convolution %lf\n", (double)(stop-start)/CLOCKS_PER_SEC);
 }
-
-stop=clock();
-
-cout << "\nTotal images : " << counttemp << endl ;
-printf("\n\nTime taken in -- CPU  sequential --  for images convolution %lf\n", (double)(stop-start)/CLOCKS_PER_SEC);
-
-
     return 0;
 }
 
 /*  
 
-g++ hw6_25.cpp -o hw6_25cpp.out `pkg-config --cflags --libs opencv`
-./hw6_25cpp.out
+g++ hw6_25.cpp -o hw6_25.out `pkg-config --cflags --libs opencv`
+./hw6_25.out
 
 */
